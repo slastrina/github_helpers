@@ -14,31 +14,26 @@ If the directory exists, this tool will instead perform a fetch on all remotes f
 
 import os
 from pathlib import Path
-from getpass import getpass
 from github import Github
 from git import Repo, GitCommandError
 
-github_token = os.getenv('github_token')
+github_token = os.getenv("github_token")
+proxy_user = os.getenv("username")
+proxy_pass = os.getenv("password")
 
-org = 'nbnco'
+org = "nbnco"
 
-git_group_names = [
-    'ignite',
-    'elms',
-    'pni',
-]
+git_group_names = ["ignite", "elms", "pni", "ccoe"]
 
-repo_root_dir = os.path.join(str(Path.home()), 'git', 'nbnco')
+repo_root_dir = os.path.join(str(Path.home()), "git", "nbnco")
 
-print('username?: ')
-username = input()
-print('password?: ')
-password = getpass()
+g = Github(
+    github_token,
+    proxies={"https": f"http://{proxy_user}:{proxy_pass}@proxy.nbnco.net.au:80"},
+)
 
-g = Github(github_token, proxies={'https':f'http://{username}:{password}@proxy.company.blah:80'})
-
-print('Retrieving All Repo Names')
-all_groups = [x for x in g.get_organization('nbnco').get_repos()]
+print("Retrieving All Repo Names")
+all_groups = [x for x in g.get_organization("nbnco").get_repos()]
 
 print(len(all_groups))
 
@@ -53,16 +48,18 @@ for group_name in git_group_names:
         clone_path = os.path.join(destination, project.name)
 
         if os.path.exists(clone_path):
-            if 'github' not in Repo(clone_path).remote('origin').urls:
-                Repo(clone_path).remote('origin').set_url(project.clone_url)
+            if "github" not in Repo(clone_path).remote("origin").urls:
+                Repo(clone_path).remote("origin").set_url(project.clone_url)
 
-            print(f'Fetching {group_name}:', project.name, 'origin')
-            Repo(clone_path).remote('origin').fetch()
+            print(f"Fetching {group_name}:", project.name, "origin")
+            Repo(clone_path).remote("origin").fetch()
         else:
-            print(f'Cloning {group_name}:', project.name, project.clone_url)
+            print(f"Cloning {group_name}:", project.name, project.clone_url)
             try:
-                Repo.clone_from(project.clone_url, os.path.join(destination, clone_path))
+                Repo.clone_from(
+                    project.clone_url, os.path.join(destination, clone_path)
+                )
             except GitCommandError as ex:
-                print(f'Probably dont have permission to download: {ex}')
+                print(f"Probably dont have permission to download: {ex}")
             except Exception as ex:
                 print(ex)
